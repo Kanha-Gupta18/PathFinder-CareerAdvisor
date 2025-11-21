@@ -1,0 +1,989 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PathFinder - Personalized College Advisor</title>
+    <!-- Tailwind CSS for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        /* Custom styles to enhance Tailwind */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f0f4f8; /* Light blue-gray background */
+            color: #1f2937; /* Dark Gray Text */
+        }
+        /* Fade-in animation for sections */
+        .section-fade-in {
+            animation: fadeIn 0.8s ease-in-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        /* Custom button styles */
+        .btn {
+            @apply text-white font-bold py-3 px-4 rounded-lg shadow-md transition-all duration-300 ease-in-out;
+        }
+        .btn-primary {
+            @apply bg-gradient-to-br from-indigo-500 to-blue-600 hover:from-indigo-600 hover:to-blue-700 transform hover:scale-105;
+        }
+        .btn-secondary {
+            @apply bg-gradient-to-br from-gray-700 to-gray-800 hover:from-gray-600 hover:to-gray-700 transform hover:scale-105;
+        }
+        /* Result card styling */
+        .result-card {
+            @apply bg-white p-5 rounded-xl shadow-lg border border-gray-200 transition-all duration-300 hover:shadow-xl hover:border-blue-500 relative;
+        }
+        /* Styling for AI-generated content */
+        #ai-report-content h4 {
+            @apply text-lg font-bold text-blue-700 mt-4 mb-2;
+        }
+        #ai-report-content ul {
+            @apply list-disc list-inside pl-4 space-y-1 text-gray-700;
+        }
+        /* Custom focus styles for light mode */
+        input:focus, select:focus {
+            --tw-ring-color: #3b82f6;
+        }
+    </style>
+</head>
+<body class="text-gray-800">
+
+    <!-- API Key Modal (Added for GitHub Public Release) -->
+    <div id="api-key-modal" class="fixed inset-0 bg-gray-900 bg-opacity-60 flex items-center justify-center z-50 backdrop-blur-sm">
+        <div class="bg-white rounded-2xl p-8 max-w-md w-full shadow-2xl border border-gray-100 transform transition-all">
+            <div class="text-center mb-6">
+                <div class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-blue-100 mb-4">
+                    <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"></path></svg>
+                </div>
+                <h3 class="text-2xl font-bold text-gray-900">Enter Gemini API Key</h3>
+                <p class="text-gray-500 text-sm mt-2">To use the AI Quiz and Roadmap features, please enter your Google Gemini API key.</p>
+            </div>
+            
+            <form id="api-key-form" class="space-y-4">
+                <div>
+                    <label for="api-key-input" class="sr-only">API Key</label>
+                    <input type="text" id="api-key-input" placeholder="Paste your API Key here" class="w-full p-4 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all" required>
+                </div>
+                <div class="flex gap-3">
+                    <button type="submit" class="flex-1 bg-blue-600 text-white font-bold py-3 px-4 rounded-xl hover:bg-blue-700 transition-all shadow-md hover:shadow-lg">Save & Continue</button>
+                    <button type="button" id="skip-api-key" class="flex-1 bg-gray-100 text-gray-600 font-bold py-3 px-4 rounded-xl hover:bg-gray-200 transition-all">Skip (No AI)</button>
+                </div>
+            </form>
+            <div class="mt-6 text-center border-t border-gray-100 pt-4">
+                <p class="text-xs text-gray-400">Don't have a key? <a href="https://aistudio.google.com/app/apikey" target="_blank" class="text-blue-600 hover:text-blue-700 font-medium">Get one for free here</a></p>
+            </div>
+        </div>
+    </div>
+
+    <div class="container mx-auto p-4 md:p-8 max-w-4xl min-h-screen flex flex-col justify-center">
+
+        <!-- Header Section -->
+        <header class="text-center mb-8">
+             <h1 class="text-4xl md:text-5xl font-extrabold text-blue-800 tracking-tight flex items-center justify-center">
+                <svg class="w-10 h-10 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="10" />
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 18V6M9 9l3-3 3 3" />
+                </svg>
+                PathFinder
+            </h1>
+            <p class="mt-2 text-lg text-slate-500">Your Personalized Guide to College Admissions in India</p>
+        </header>
+
+        <main id="app-container" class="bg-white rounded-2xl shadow-2xl p-6 md:p-10">
+
+            <!-- 1. Quiz Section -->
+            <section id="quiz-section" class="section-fade-in">
+                <div class="text-center">
+                    <h2 class="text-2xl font-bold mb-2 text-gray-900">Let's Discover Your Path</h2>
+                    <p class="text-gray-600 mb-8">Choose the subject group you belong to</p>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <button onclick="selectStream('science')" class="p-6 bg-blue-50 border-2 border-transparent hover:border-blue-500 hover:bg-blue-100 rounded-lg transition-all">
+                            <div class="text-4xl mb-2">🔬</div>
+                            <h3 class="font-bold text-lg text-gray-900">Non-Medical</h3>
+                            <p class="text-sm text-gray-500">(PCM)</p>
+                        </button>
+                        <button onclick="selectStream('commerce')" class="p-6 bg-green-50 border-2 border-transparent hover:border-green-500 hover:bg-green-100 rounded-lg transition-all">
+                            <div class="text-4xl mb-2">💼</div>
+                            <h3 class="font-bold text-lg text-gray-900">Commerce</h3>
+                            <p class="text-sm text-gray-500">(Business, Accounts)</p>
+                        </button>
+                        <button onclick="selectStream('arts')" class="p-6 bg-purple-50 border-2 border-transparent hover:border-purple-500 hover:bg-purple-100 rounded-lg transition-all">
+                            <div class="text-4xl mb-2">🎨</div>
+                            <h3 class="font-bold text-lg text-gray-900">Arts</h3>
+                            <p class="text-sm text-gray-500">(Humanities)</p>
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 2. Branch Aptitude Quiz Section -->
+            <section id="branch-quiz-section" class="hidden section-fade-in">
+                <div class="text-center">
+                    <h2 class="text-2xl font-bold mb-2 text-gray-900">✨ Aptitude & Interest Quiz</h2>
+                    <p class="text-gray-600 mb-6">Let's find the perfect branch for you. Answer based on your genuine interest.</p>
+                </div>
+                <div id="branch-quiz-container">
+                    <!-- Progress Bar -->
+                    <div class="w-full bg-gray-200 rounded-full h-2.5 mb-4">
+                        <div id="quiz-progress-bar" class="bg-blue-600 h-2.5 rounded-full" style="width: 0%"></div>
+                    </div>
+                    <!-- Question and Options -->
+                    <div id="quiz-question-area" class="text-center mt-6">
+                        <!-- Dynamic content will be injected here by Gemini -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- 3. Score Input Section -->
+            <section id="score-section" class="hidden section-fade-in">
+                <div class="text-center">
+                    <h2 class="text-2xl font-bold mb-2 text-gray-900">Enter Your Details & Scores</h2>
+                    <p class="text-gray-600 mb-8">Provide your ranks/scores for the <strong id="stream-name" class="capitalize text-blue-700"></strong> stream.</p>
+                    <p class="text-md text-gray-500 mb-8">Based on your quiz, we recommend looking into: <br><strong id="recommended-branch-text" class="text-blue-700"></strong></p>
+                </div>
+                <form id="score-form" class="space-y-6">
+                    <!-- Dynamic fields will be inserted here by JavaScript -->
+                </form>
+            </section>
+
+            <!-- 4. Loading Section -->
+            <section id="loading-section" class="hidden section-fade-in text-center py-16">
+                 <div class="flex justify-center items-center space-x-2">
+                    <div class="w-4 h-4 rounded-full bg-blue-600 animate-bounce" style="animation-delay: -0.3s;"></div>
+                    <div class="w-4 h-4 rounded-full bg-blue-600 animate-bounce" style="animation-delay: -0.15s;"></div>
+                    <div class="w-4 h-4 rounded-full bg-blue-600 animate-bounce"></div>
+                </div>
+                <h2 id="loading-text" class="text-xl font-semibold mt-6 text-gray-700">Analyzing thousands of data points...</h2>
+                <p class="text-gray-500">Crafting your personalized college report!</p>
+            </section>
+
+            <!-- 5. Results Section -->
+            <section id="results-section" class="hidden section-fade-in">
+                 <div class="text-center mb-8">
+                    <h2 class="text-3xl font-bold mb-2 text-gray-900">Your Personalized College Predictions</h2>
+                    <p id="results-subtitle" class="text-gray-600">Based on your scores and previous year cutoffs.</p>
+                </div>
+                <!-- Results will be injected here -->
+                <div id="results-output" class="space-y-10"></div>
+                 <div class="text-center mt-10 space-x-4">
+                    <button  style="background-color: blue; color: white; padding: 10px 20px; border-radius: 5px;" id="ai-roadmap-btn" class="btn btn-primary w-auto px-8">✨ Generate AI Career Roadmap</button>
+                    <button  style="background-color: blue; color: white; padding: 10px 20px; border-radius: 5px; margin-top: 10px;" onclick="resetApp()" class="btn btn-secondary w-auto px-8">Start Over</button>
+                </div>
+            </section>
+
+            <!-- 6. Career Goals Quiz Section -->
+            <section id="career-quiz-section" class="hidden section-fade-in">
+                <div class="text-center">
+                    <h2 class="text-2xl font-bold mb-2 text-gray-900">🎯 Career Aspirations Quiz</h2>
+                    <p class="text-gray-600 mb-6">A few more questions to tailor your personalized career roadmap.</p>
+                </div>
+                <div id="career-quiz-container">
+                    <!-- Progress Bar -->
+                    <div class="w-full bg-gray-200 rounded-full h-2.5 mb-4">
+                        <div id="career-quiz-progress-bar" class="bg-blue-600 h-2.5 rounded-full" style="width: 0%"></div>
+                    </div>
+                    <!-- Question and Options -->
+                    <div id="career-quiz-question-area" class="text-center mt-6">
+                        <!-- Dynamic content for career quiz -->
+                    </div>
+                </div>
+            </section>
+            
+             <!-- 7. AI Roadmap Section -->
+            <section id="ai-report-section" class="hidden section-fade-in">
+                <div class="text-center mb-6">
+                    <h2 class="text-3xl font-bold mb-2 text-gray-900">✨ Your Hyper-Personalized Career Roadmap</h2>
+                    <p class="text-gray-600">Actionable insights for your future based on your results and aspirations.</p>
+                </div>
+                <div id="ai-report-content" class="p-6 bg-blue-50 rounded-lg border border-blue-200">
+                    <!-- AI content will be injected here -->
+                </div>
+                <div class="text-center mt-8">
+                     <button style="background-color: blue; color: white; padding: 10px 20px; border-radius: 5px" onclick="resetApp()" class="btn btn-secondary w-auto px-8">Start Over</button>
+                </div>
+            </section>
+
+        </main>
+
+    </div>
+
+    <script>
+        // --- GEMINI API CONFIGURATION ---
+        // SECURITY UPDATE: API Key removed for public GitHub release. 
+        // Users must enter their own key via the UI modal.
+        let geminiApiKey = '';
+        
+        // --- DATABASE ---
+        const collegeData = {
+            science: [
+                 // --- All IITs (JEE Advanced) ---
+                { name: "IIT Bombay", state: "Maharashtra", nirf: 3, courses: [
+                    { name: "Computer Science and Engineering", cutoff: { jee_advanced_rank: { "GEN": 67, "EWS": 17, "OBC": 55, "SC": 29, "ST": 10 } } },
+                    { name: "Electrical Engineering", cutoff: { jee_advanced_rank: { "GEN": 466, "OBC": 300, "SC": 150 } } },
+                    { name: "Mechanical Engineering", cutoff: { jee_advanced_rank: { "GEN": 1756, "OBC": 800, "SC": 450 } } },
+                    { name: "Civil Engineering", cutoff: { jee_advanced_rank: { "GEN": 4379, "OBC": 1800, "SC": 800 } } }
+                ]},
+                { name: "IIT Delhi", state: "Delhi", nirf: 2, courses: [
+                    { name: "Computer Science and Engineering", cutoff: { jee_advanced_rank: { "GEN": 118, "EWS": 25, "OBC": 88, "SC": 45, "ST": 20 } } },
+                    { name: "Mathematics and Computing", cutoff: { jee_advanced_rank: { "GEN": 315, "OBC": 200, "SC": 120 } } },
+                    { name: "Electrical Engineering", cutoff: { jee_advanced_rank: { "GEN": 584, "OBC": 350, "SC": 180 } } },
+                    { name: "Mechanical Engineering", cutoff: { jee_advanced_rank: { "GEN": 2779, "OBC": 1200, "SC": 600 } } }
+                ]},
+                { name: "IIT Madras", state: "Tamil Nadu", nirf: 1, courses: [
+                    { name: "Computer Science and Engineering", cutoff: { jee_advanced_rank: { "GEN": 148, "EWS": 40, "OBC": 110, "SC": 60, "ST": 25 } } },
+                    { name: "Electrical Engineering", cutoff: { jee_advanced_rank: { "GEN": 931, "OBC": 450, "SC": 250 } } },
+                    { name: "Mechanical Engineering", cutoff: { jee_advanced_rank: { "GEN": 2500, "OBC": 1100, "SC": 650 } } }
+                ]},
+                { name: "IIT Kanpur", state: "Uttar Pradesh", nirf: 4, courses: [
+                    { name: "Computer Science and Engineering", cutoff: { jee_advanced_rank: { "GEN": 238, "EWS": 45, "OBC": 150, "SC": 90, "ST": 40 } } },
+                    { name: "Electrical Engineering", cutoff: { jee_advanced_rank: { "GEN": 1215, "OBC": 600, "SC": 300 } } },
+                    { name: "Mechanical Engineering", cutoff: { jee_advanced_rank: { "GEN": 2984, "OBC": 1400, "SC": 700 } } }
+                ]},
+                { name: "IIT Kharagpur", state: "West Bengal", nirf: 6, courses: [
+                    { name: "Computer Science and Engineering", cutoff: { jee_advanced_rank: { "GEN": 279, "EWS": 60, "OBC": 180, "SC": 110, "ST": 50 } } },
+                    { name: "Electronics and Electrical Communication Engineering", cutoff: { jee_advanced_rank: { "GEN": 1450, "OBC": 650, "SC": 320 } } },
+                    { name: "Mechanical Engineering", cutoff: { jee_advanced_rank: { "GEN": 3200, "OBC": 1500, "SC": 750 } } }
+                ]},
+                { name: "IIT Roorkee", state: "Uttarakhand", nirf: 5, courses: [
+                    { name: "Computer Science and Engineering", cutoff: { jee_advanced_rank: { "GEN": 412, "EWS": 70, "OBC": 220, "SC": 130, "ST": 60 } } },
+                    { name: "Electronics and Communication Engineering", cutoff: { jee_advanced_rank: { "GEN": 1400, "OBC": 700, "SC": 350 } } }
+                ]},
+                { name: "IIT Guwahati", state: "Assam", nirf: 7, courses: [
+                    { name: "Computer Science and Engineering", cutoff: { jee_advanced_rank: { "GEN": 654, "EWS": 100, "OBC": 300, "SC": 180, "ST": 80 } } },
+                    { name: "Electronics and Communication Engineering", cutoff: { jee_advanced_rank: { "GEN": 2000, "OBC": 900, "SC": 450 } } }
+                ]},
+                // Other IITs with single branch for brevity
+                { name: "IIT Hyderabad", state: "Telangana", nirf: 8, courses: [{ name: "Computer Science and Engineering", cutoff: { jee_advanced_rank: { "GEN": 674, "EWS": 110, "OBC": 320, "SC": 190, "ST": 85 } } }] },
+                { name: "IIT (BHU) Varanasi", state: "Uttar Pradesh", nirf: 15, courses: [{ name: "Computer Science and Engineering", cutoff: { jee_advanced_rank: { "GEN": 1017, "EWS": 150, "OBC": 450, "SC": 250, "ST": 120 } } }] },
+                { name: "IIT Indore", state: "Madhya Pradesh", nirf: 14, courses: [{ name: "Computer Science and Engineering", cutoff: { jee_advanced_rank: { "GEN": 1385, "EWS": 200, "OBC": 550, "SC": 300, "ST": 150 } } }] },
+
+                // --- All NITs (JEE Main) ---
+                { name: "NIT Trichy", state: "Tamil Nadu", nirf: 9, courses: [
+                    { name: "Computer Science and Engineering", cutoff: { jee_main_rank: { "GEN": { "OS": 788, "HS": 2500 }, "OBC": { "OS": 250, "HS": 800 } } } },
+                    { name: "Electronics and Communication Engineering", cutoff: { jee_main_rank: { "GEN": { "OS": 3068, "HS": 6000 }, "OBC": { "OS": 1000, "HS": 2000 } } } },
+                    { name: "Mechanical Engineering", cutoff: { jee_main_rank: { "GEN": { "OS": 8000, "HS": 15000 }, "OBC": { "OS": 2500, "HS": 5000 } } } },
+                    { name: "Civil Engineering", cutoff: { jee_main_rank: { "GEN": { "OS": 12000, "HS": 20000 }, "OBC": { "OS": 4000, "HS": 7000 } } } }
+                ]},
+                { name: "NIT Surathkal", state: "Karnataka", nirf: 12, courses: [
+                    { name: "Computer Science and Engineering", cutoff: { jee_main_rank: { "GEN": { "OS": 1400, "HS": 3000 }, "OBC": { "OS": 400, "HS": 1200 } } } },
+                    { name: "Information Technology", cutoff: { jee_main_rank: { "GEN": { "OS": 2000, "HS": 4500 }, "OBC": { "OS": 600, "HS": 1800 } } } },
+                    { name: "Electrical and Electronics Engineering", cutoff: { jee_main_rank: { "GEN": { "OS": 4500, "HS": 9000 }, "OBC": { "OS": 1500, "HS": 3500 } } } }
+                ]},
+                { name: "NIT Warangal", state: "Telangana", nirf: 21, courses: [
+                    { name: "Computer Science and Engineering", cutoff: { jee_main_rank: { "GEN": { "OS": 1600, "HS": 2800 }, "OBC": { "OS": 500, "HS": 1000 } } } },
+                    { name: "Electronics and Communication Engineering", cutoff: { jee_main_rank: { "GEN": { "OS": 4000, "HS": 5000 }, "OBC": { "OS": 1200, "HS": 1800 } } } }
+                ]},
+                { name: "MNNIT Allahabad", state: "Uttar Pradesh", nirf: 49, courses: [
+                    { name: "Computer Science and Engineering", cutoff: { jee_main_rank: { "GEN": { "OS": 3500, "HS": 5000 }, "OBC": { "OS": 1300, "HS": 2000 } } } },
+                    { name: "Mechanical Engineering", cutoff: { jee_main_rank: { "GEN": { "OS": 15000, "HS": 20000 }, "OBC": { "OS": 5000, "HS": 7000 } } } }
+                ]},
+                // Other NITs with single branch for brevity
+                { name: "NIT Rourkela", state: "Odisha", nirf: 16, courses: [{ name: "Computer Science and Engineering", cutoff: { jee_main_rank: { "GEN": { "OS": 2500, "HS": 8000 }, "OBC": { "OS": 800, "HS": 3000 } } } }] },
+                { name: "NIT Calicut", state: "Kerala", nirf: 23, courses: [{ name: "Computer Science and Engineering", cutoff: { jee_main_rank: { "GEN": { "OS": 3500, "HS": 6000 }, "OBC": { "OS": 1200, "HS": 2500 } } } }] },
+                
+                // --- JAC Delhi (JEE Main) ---
+                { name: "Delhi Technological University (DTU)", state: "Delhi", nirf: 29, courses: [
+                    { name: "Computer Engineering", cutoff: { jee_main_rank: { "GEN": { "OS": 3500, "HS": 8000 } } } },
+                    { name: "Information Technology", cutoff: { jee_main_rank: { "GEN": { "OS": 4500, "HS": 10000 } } } },
+                    { name: "Software Engineering", cutoff: { jee_main_rank: { "GEN": { "OS": 5500, "HS": 12000 } } } },
+                    { name: "Electronics and Communication Engineering", cutoff: { jee_main_rank: { "GEN": { "OS": 7000, "HS": 18000 } } } },
+                    { name: "Mechanical Engineering", cutoff: { jee_main_rank: { "GEN": { "OS": 15000, "HS": 35000 } } } }
+                ]},
+                { name: "Netaji Subhas University of Technology (NSUT)", state: "Delhi", nirf: 60, courses: [
+                    { name: "Computer Science and Engineering", cutoff: { jee_main_rank: { "GEN": { "OS": 2500, "HS": 6000 } } } },
+                    { name: "Information Technology", cutoff: { jee_main_rank: { "GEN": { "OS": 3800, "HS": 9000 } } } },
+                    { name: "Electronics and Communication Engineering", cutoff: { jee_main_rank: { "GEN": { "OS": 6000, "HS": 16000 } } } }
+                ]},
+                { name: "Indraprastha Institute of Information Technology, Delhi (IIIT-D)", state: "Delhi", nirf: 75, courses: [
+                    { name: "Computer Science and Engineering", cutoff: { jee_main_rank: { "GEN": { "OS": 1500, "HS": 4000 } } } },
+                    { name: "Computer Science and Artificial Intelligence", cutoff: { jee_main_rank: { "GEN": { "OS": 1000, "HS": 3000 } } } }
+                ]},
+                { name: "Indira Gandhi Delhi Technical University for Women (IGDTUW)", state: "Delhi", nirf: 151, courses: [
+                    { name: "Computer Science and Engineering", cutoff: { jee_main_rank: { "GEN": { "OS": 10000, "HS": 25000 } } } }
+                ]},
+
+                // --- JAC Chandigarh (JEE Main) ---
+                { name: "UIET, Panjab University, Chandigarh", state: "Chandigarh", nirf: 101, courses: [
+                    { name: "Computer Science Engineering", cutoff: { jee_main_rank: { "GEN": { "OS": 18000, "HS": 30000 } } } },
+                    { name: "Information Technology", cutoff: { jee_main_rank: { "GEN": { "OS": 22000, "HS": 38000 } } } }
+                ]},
+                { name: "UICET, Panjab University, Chandigarh", state: "Chandigarh", nirf: 101, courses: [
+                    { name: "Chemical Engineering", cutoff: { jee_main_rank: { "GEN": { "OS": 45000, "HS": 80000 } } } }
+                ]},
+
+                // --- BITSAT ---
+                { name: "BITS Pilani, Pilani Campus", state: "Rajasthan", nirf: 25, courses: [
+                    { name: "Computer Science", cutoff: { bitsat_score: { "GEN": 372 } } },
+                    { name: "Electronics & Communication Engineering", cutoff: { bitsat_score: { "GEN": 328 } } },
+                    { name: "Electrical & Electronics Engineering", cutoff: { bitsat_score: { "GEN": 305 } } },
+                    { name: "Mechanical Engineering", cutoff: { bitsat_score: { "GEN": 278 } } },
+                    { name: "Chemical Engineering", cutoff: { bitsat_score: { "GEN": 248 } } },
+                    { name: "Civil Engineering", cutoff: { bitsat_score: { "GEN": 220 } } }
+                ]},
+                { name: "BITS Pilani, Goa Campus", state: "Goa", nirf: 25, courses: [
+                    { name: "Computer Science", cutoff: { bitsat_score: { "GEN": 347 } } },
+                    { name: "Electronics & Communication Engineering", cutoff: { bitsat_score: { "GEN": 306 } } },
+                    { name: "Electrical & Electronics Engineering", cutoff: { bitsat_score: { "GEN": 286 } } },
+                    { name: "Mechanical Engineering", cutoff: { bitsat_score: { "GEN": 255 } } }
+                ]},
+                { name: "BITS Pilani, Hyderabad Campus", state: "Telangana", nirf: 25, courses: [
+                    { name: "Computer Science", cutoff: { bitsat_score: { "GEN": 336 } } },
+                    { name: "Electronics & Communication Engineering", cutoff: { bitsat_score: { "GEN": 295 } } },
+                    { name: "Electrical & Electronics Engineering", cutoff: { bitsat_score: { "GEN": 275 } } },
+                    { name: "Mechanical Engineering", cutoff: { bitsat_score: { "GEN": 244 } } },
+                    { name: "Civil Engineering", cutoff: { bitsat_score: { "GEN": 215 } } }
+                ]},
+
+                // --- All IIITs (JEE Main / UGEE) ---
+                { name: "IIIT Hyderabad", state: "Telangana", nirf: 55, courses: [
+                    { name: "Computer Science and Engineering", cutoff: { jee_main_rank: { "GEN": { "OS": 300 } } } },
+                    { name: "Electronics and Communication Engineering", cutoff: { jee_main_rank: { "GEN": { "OS": 1000 } } } },
+                    { name: "CSE (via UGEE)", cutoff: { ugee_rank: { "GEN": 100 } } }
+                ]},
+                { name: "IIIT Bangalore", state: "Karnataka", nirf: 74, courses: [{ name: "Computer Science and Engineering", cutoff: { jee_main_rank: { "GEN": { "OS": 8000 } } } }] },
+                { name: "IIIT Allahabad", state: "Uttar Pradesh", nirf: 89, courses: [
+                    { name: "Information Technology", cutoff: { jee_main_rank: { "GEN": { "OS": 5000 } } } },
+                    { name: "Electronics and Communication Engineering", cutoff: { jee_main_rank: { "GEN": { "OS": 9000 } } } }
+                ]},
+                { name: "IIITM Gwalior", state: "Madhya Pradesh", nirf: 88, courses: [{ name: "Computer Science and Engineering", cutoff: { jee_main_rank: { "GEN": { "OS": 7000 } } } }] },
+                
+                // --- Top GFTIs, State, Private colleges etc. ---
+                { name: "PEC Chandigarh", state: "Chandigarh", nirf: 101, courses: [
+                    { name: "Computer Science Engineering", cutoff: { jee_main_rank: { "GEN": { "OS": 12000, "HS": 20000 } } } },
+                    { name: "Electronics and Communication Engineering", cutoff: { jee_main_rank: { "GEN": { "OS": 20000, "HS": 35000 } } } }
+                ]},
+                { name: "Jadavpur University, Kolkata", state: "West Bengal", nirf: 10, courses: [
+                    { name: "Computer Science and Engineering", cutoff: { wbjee_rank: { "GEN": { "HS": 80 } } } },
+                    { name: "Electronics & Tele-Communication Engineering", cutoff: { wbjee_rank: { "GEN": { "HS": 250 } } } }
+                ]},
+                { name: "College of Engineering, Pune (COEP)", state: "Maharashtra", nirf: 72, courses: [
+                    { name: "Computer Engineering", cutoff: { mhtcet_percentile: { "GEN": { "HS": 99.9 } } } },
+                    { name: "Electronics and Telecommunication Engg", cutoff: { mhtcet_percentile: { "GEN": { "HS": 99.7 } } } }
+                ]},
+                { name: "RV College of Engineering, Bangalore", state: "Karnataka", nirf: 96, courses: [
+                    { name: "Computer Science Engineering", cutoff: { comedk_rank: { "GEN": { "OS": 500 } } } },
+                    { name: "Electronics and Communication Engineering", cutoff: { comedk_rank: { "GEN": { "OS": 1500 } } } }
+                ]},
+                { name: "VIT Vellore", state: "Tamil Nadu", nirf: 11, courses: [
+                    { name: "Computer Science and Engineering (Core)", cutoff: { viteee_rank: { "GEN": 1000 } } },
+                    { name: "Electronics and Communication Engineering", cutoff: { viteee_rank: { "GEN": 4000 } } }
+                ]},
+                { name: "Thapar Institute of Engineering and Technology", state: "Punjab", nirf: 20, courses: [
+                    { name: "Computer Engineering", cutoff: { jee_main_rank: { "GEN": { "OS": 25000, "HS": 50000 } } } },
+                    { name: "Electrical and Computer Engineering", cutoff: { jee_main_rank: { "GEN": { "OS": 35000, "HS": 70000 } } } }
+                ]},
+                { name: "Manipal Institute of Technology", state: "Karnataka", nirf: 61, courses: [
+                    { name: "Computer Science and Engineering", cutoff: { met_rank: { "GEN": 1200 } } },
+                    { name: "Information Technology", cutoff: { met_rank: { "GEN": 2500 } } }
+                ]},
+                { name: "The LNM Institute of Information Technology (LNMIIT), Jaipur", state: "Rajasthan", nirf: 151, courses: [
+                    { name: "Computer Science and Engineering", cutoff: { jee_main_rank: { "GEN": { "OS": 14000 } } } },
+                    { name: "Electronics and Communication Engineering", cutoff: { jee_main_rank: { "GEN": { "OS": 22000 } } } }
+                ]},
+
+                // --- Science Aptitude Exams (IAT, NEST) ---
+                { name: "IISER Pune", state: "Maharashtra", nirf: 34, courses: [{ name: "BS-MS Dual Degree", cutoff: { iat_rank: { "GEN": 500 } } }] },
+                { name: "NISER Bhubaneswar", state: "Odisha", nirf: 49, courses: [{ name: "Integrated M.Sc", cutoff: { nest_rank: { "GEN": 200 } } }] },
+             ],
+            commerce: [
+                // DU Colleges (CUET)
+                { name: "Shri Ram College of Commerce (SRCC), DU", state: "Delhi", nirf: 1, courses: [
+                    { name: "B.Com (Hons)", cutoff: { cuet_percentile: { "GEN": 99.75, "EWS": 99, "OBC": 98.5, "SC": 97, "ST": 95 } } },
+                    { name: "Economics (Hons)", cutoff: { cuet_percentile: { "GEN": 99.5 } } }
+                ]},
+                { name: "Shaheed Sukhdev College of Business Studies (SSCBS), DU", state: "Delhi", nirf: 2, courses: [
+                    { name: "BMS (Bachelor of Management Studies)", cutoff: { cuet_percentile: { "GEN": 99, "OBC": 97.5 } } },
+                    { name: "BBA (Financial Investment Analysis)", cutoff: { cuet_percentile: { "GEN": 99.25, "OBC": 98 } } }
+                ]},
+                { name: "Devi Ahilya Vishwavidyalaya (DAVV), Indore", state: "Madhya Pradesh", nirf: 101, courses: [
+                    { name: "B.Com (Hons)", cutoff: { cuet_percentile: { "GEN": 92 } } },
+                    { name: "BBA", cutoff: { cuet_percentile: { "GEN": 93 } } }
+                ]},
+                { name: "Lingaya's Lalita Devi Institute (LLDIMS), Delhi", state: "Delhi", nirf: 151, courses: [
+                    { name: "B.Com (Hons)", cutoff: { cuet_percentile: { "GEN": 88 } } },
+                    { name: "BBA", cutoff: { cuet_percentile: { "GEN": 90 } } }
+                ]},
+                { name: "Guru Gobind Singh Indraprastha University (GGSIPU), Delhi", state: "Delhi", nirf: 84, courses: [
+                    { name: "B.Com (Hons)", cutoff: { cuet_percentile: { "GEN": 94 } } },
+                    { name: "BBA", cutoff: { cuet_percentile: { "GEN": 95 } } }
+                ]},
+                // IPMAT Colleges
+                { name: "Indian Institute of Management, Indore", state: "Madhya Pradesh", nirf: 8, courses: [{ name: "Integrated Programme in Management (IPM)", cutoff: { ipmat_score: { "GEN": 280 } } }]},
+                // Private University Exams (NPAT, SET)
+                { name: "Anil Surendra Modi School of Commerce, NMIMS, Mumbai", state: "Maharashtra", nirf: 25, courses: [{ name: "BBA", cutoff: { npat_score: { "GEN": 240 } } }]},
+                { name: "Symbiosis Centre for Management Studies, Pune", state: "Maharashtra", nirf: 3, courses: [{ name: "BBA", cutoff: { set_score: { "GEN": 90 } } }]},
+                { name: "Vijaybhoomi University, Mumbai", state: "Maharashtra", nirf: 201, courses: [
+                    { name: "BBA", cutoff: { ipmat_score: { "GEN": 180 } } },
+                    { name: "Integrated BBA+MBA", cutoff: { ipmat_score: { "GEN": 200 } } }
+                ]},
+            ],
+            arts: [
+                 // Law Colleges (CLAT)
+                 { name: "National Law School of India University, Bangalore", state: "Karnataka", nirf: 1, courses: [{ name: "BA LLB (Hons)", cutoff: { clat_rank: { "GEN": 100, "OBC": 500, "SC": 2000, "ST": 3000 } } }]},
+                 // Other Metros
+                 { name: "Jadavpur University", state: "West Bengal", nirf: 10, courses: [{ name: "BA (Hons) Comparative Literature", cutoff: { boards_percentage: { "GEN": 97 } } }]},
+            ]
+        };
+
+        const staticQuizData = {
+            science: {
+                branches: ["cse", "mech", "civil", "elec", "bsc"],
+                questions: [
+                    { text: "Which activity sounds most appealing?", options: [ {text: "Building a complex software application", points: {cse: 3, elec: 1}}, {text: "Designing a high-performance engine", points: {mech: 3}}, {text: "Constructing a large-scale bridge", points: {civil: 3}}, {text: "Exploring fundamental laws of the universe", points: {bsc: 3}} ]},
+                    { text: "I prefer working on:", options: [ {text: "Abstract problems and algorithms on a computer", points: {cse: 3}}, {text: "Tangible, moving parts and machinery", points: {mech: 3}}, {text: "Large, static structures and infrastructure", points: {civil: 3}}, {text: "Circuits, power systems, and electronics", points: {elec: 3}} ]},
+                    { text: "In a team project, I'd rather be the one who:", options: [ {text: "Writes the core code and logic", points: {cse: 3}}, {text: "Builds the physical prototype", points: {mech: 3}}, {text: "Manages the project's structural integrity", points: {civil: 3}}, {text: "Handles the power supply and sensors", points: {elec: 3}} ]},
+                    { text: "My ideal learning environment involves:", options: [ {text: "Long hours coding on a single project", points: {cse: 3}}, {text: "Hands-on work in a workshop", points: {mech: 3}}, {text: "Field work and site visits", points: {civil: 3}}, {text: "Research and theoretical exploration in a lab", points: {bsc: 3, elec: 1}} ]}
+                ]
+            },
+            commerce: {
+                branches: ["bcom", "bba", "eco", "ipm"],
+                questions: [
+                    { text: "Which headline interests you most?", options: [ {text: "Stock Market Hits Record High", points: {bcom: 3, eco: 1}}, {text: "Startup Secures Million-Dollar Funding", points: {bba: 3, ipm: 2}}, {text: "Government Announces New Economic Policy", points: {eco: 3}}, {text: "How to Build a 10-Year Business Plan", points: {ipm: 3, bba: 1}} ]},
+                    { text: "I'm better at:", options: [ {text: "Analyzing financial statements and balance sheets", points: {bcom: 3}}, {text: "Leading a team and managing people", points: {bba: 3, ipm: 1}}, {text: "Understanding market trends and global trade", points: {eco: 3}}, {text: "Developing long-term strategies for growth", points: {ipm: 3}} ]},
+                    { text: "My ideal career involves:", options: [ {text: "A structured role in finance or accounting", points: {bcom: 3}}, {text: "A dynamic role in marketing or HR", points: {bba: 3}}, {text: "A research or policy-making role", points: {eco: 3}}, {text: "Becoming a CEO or entrepreneur", points: {ipm: 3, bba: 1}} ]},
+                    { text: "Which subject do you prefer?", options: [ {text: "Accountancy", points: {bcom: 3}}, {text: "Business Studies", points: {bba: 3, ipm: 1}}, {text: "Economics", points: {eco: 3}}, {text: "Strategic Management", points: {ipm: 3}} ]}
+                ]
+            },
+            arts: {
+                branches: ["socsci", "eng", "psych", "law"],
+                questions: [
+                    { text: "I am most fascinated by:", options: [ {text: "How past events shaped our present society", points: {socsci: 3}}, {text: "The power of language and storytelling", points: {eng: 3}}, {text: "Understanding why people behave the way they do", points: {psych: 3}}, {text: "The principles of justice and fairness", points: {law: 3}} ]},
+                    { text: "In a debate, I enjoy:", options: [ {text: "Using historical context to support my argument", points: {socsci: 3}}, {text: "Analyzing the text and author's intent", points: {eng: 3}}, {text: "Observing the group dynamics and motivations", points: {psych: 3}}, {text: "Constructing a logical, rule-based argument", points: {law: 3}} ]},
+                    { text: "My ideal reading material is:", options: [ {text: "A political biography", points: {socsci: 3}}, {text: "A classic novel", points: {eng: 3}}, {text: "A study on human behavior", points: {psych: 3}}, {text: "A book on constitutional law", points: {law: 3}} ]},
+                    { text: "I want a career that allows me to:", options: [ {text: "Work in policy-making or public service", points: {socsci: 3}}, {text: "Work in publishing, writing, or academia", points: {eng: 3}}, {text: "Help people by understanding their minds", points: {psych: 3}}, {text: "Uphold rights and argue for justice", points: {law: 3}} ]}
+                ]
+            }
+        };
+
+        // --- STATE VARIABLES ---
+        let branchQuizData = {}; 
+        let careerQuizData = {};
+
+        const sections = {
+            quiz: document.getElementById('quiz-section'),
+            branchQuiz: document.getElementById('branch-quiz-section'),
+            scores: document.getElementById('score-section'),
+            loading: document.getElementById('loading-section'),
+            results: document.getElementById('results-section'),
+            careerQuiz: document.getElementById('career-quiz-section'),
+            aiReport: document.getElementById('ai-report-section'),
+        };
+        const apiKeyModal = document.getElementById('api-key-modal');
+        const apiKeyForm = document.getElementById('api-key-form');
+        const skipApiKeyBtn = document.getElementById('skip-api-key');
+        const scoreForm = document.getElementById('score-form');
+        const streamNameEl = document.getElementById('stream-name');
+        const resultsOutput = document.getElementById('results-output');
+        const resultsSubtitle = document.getElementById('results-subtitle');
+        const recommendedBranchText = document.getElementById('recommended-branch-text');
+        const aiRoadmapBtn = document.getElementById('ai-roadmap-btn');
+        const aiReportContent = document.getElementById('ai-report-content');
+        const loadingText = document.getElementById('loading-text');
+
+        let currentStream = '';
+        let recommendedBranches = [];
+        let highChanceColleges = []; 
+        let userCareerPreferences = {};
+
+        let branchScores = {};
+        let currentQuestionIndex = 0;
+        let currentCareerQuestionIndex = 0;
+
+
+        // --- DYNAMIC FORM DEFINITIONS ---
+        const states = ["Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar", "Chandigarh", "Chhattisgarh", "Delhi", "Goa", "Gujarat", "Haryana", "Himachal Pradesh", "Jharkhand", "Karnataka", "Kerala", "Madhya Pradesh", "Maharashtra", "Manipur", "Meghalaya", "Mizoram", "Nagaland", "Odisha", "Punjab", "Rajasthan", "Sikkim", "Tamil Nadu", "Telangana", "Tripura", "Uttar Pradesh", "Uttarakhand", "West Bengal", "Jammu and Kashmir", "Puducherry"];
+        
+        const commonFields = `
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <label class="font-semibold text-gray-700">State of Eligibility</label>
+                    <select name="state" class="mt-1 w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500">
+                        ${states.map(s => `<option value="${s}">${s}</option>`).join('')}
+                    </select>
+                </div>
+                <div>
+                    <label class="font-semibold text-gray-700">Category</label>
+                    <select name="category" class="mt-1 w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500">
+                        <option value="GEN">General</option>
+                        <option value="EWS">EWS</option>
+                        <option value="OBC">OBC-NCL</option>
+                        <option value="SC">SC</option>
+                        <option value="ST">ST</option>
+                    </select>
+                </div>
+            </div>
+            <hr class="my-4 border-gray-200"/>
+        `;
+
+        const formFields = {
+            science: `
+                ${commonFields}
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div><label class="font-semibold text-gray-700">JEE Advanced Rank</label><input type="number" name="jee_advanced_rank" placeholder="e.g., 5000" class="mt-1 w-full p-3 border border-gray-300 rounded-md"></div>
+                    <div><label class="font-semibold text-gray-700">JEE Main Rank</label><input type="number" name="jee_main_rank" placeholder="e.g., 25000" class="mt-1 w-full p-3 border border-gray-300 rounded-md"></div>
+                    <div><label class="font-semibold text-gray-700">BITSAT Score</label><input type="number" name="bitsat_score" placeholder="e.g., 300" class="mt-1 w-full p-3 border border-gray-300 rounded-md"></div>
+                    <div><label class="font-semibold text-gray-700">VITEEE Rank</label><input type="number" name="viteee_rank" placeholder="e.g., 5000" class="mt-1 w-full p-3 border border-gray-300 rounded-md"></div>
+                    <div><label class="font-semibold text-gray-700">MET Rank (Manipal)</label><input type="number" name="met_rank" placeholder="e.g., 1500" class="mt-1 w-full p-3 border border-gray-300 rounded-md"></div>
+                    <div><label class="font-semibold text-gray-700">COMEDK Rank</label><input type="number" name="comedk_rank" placeholder="e.g., 2000" class="mt-1 w-full p-3 border border-gray-300 rounded-md"></div>
+                    <div><label class="font-semibold text-gray-700">UGEE Rank (IIITH)</label><input type="number" name="ugee_rank" placeholder="e.g., 100" class="mt-1 w-full p-3 border border-gray-300 rounded-md"></div>
+                    <div><label class="font-semibold text-gray-700">MHTCET Percentile</label><input type="number" name="mhtcet_percentile" placeholder="e.g., 99.5" step="0.01" class="mt-1 w-full p-3 border border-gray-300 rounded-md"></div>
+                    <div><label class="font-semibold text-gray-700">WBJEE Rank</label><input type="number" name="wbjee_rank" placeholder="e.g., 500" class="mt-1 w-full p-3 border border-gray-300 rounded-md"></div>
+                    <div><label class="font-semibold text-gray-700">IAT Rank (IISERs)</label><input type="number" name="iat_rank" placeholder="e.g., 600" class="mt-1 w-full p-3 border border-gray-300 rounded-md"></div>
+                    <div><label class="font-semibold text-gray-700">NEST Rank (NISER)</label><input type="number" name="nest_rank" placeholder="e.g., 200" class="mt-1 w-full p-3 border border-gray-300 rounded-md"></div>
+                </div>
+                <div class="text-center pt-6">
+                    <button  style="background-color: blue; color: white; padding: 10px 20px; border-radius: 5px;" type="submit" class="btn btn-primary w-auto px-10">Predict My Colleges</button>
+                </div>`,
+            commerce: `
+                ${commonFields}
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div><label class="font-semibold text-gray-700">CUET Percentile</label><input type="number" step="0.01" name="cuet_percentile" placeholder="e.g., 98.5" class="mt-1 w-full p-3 border border-gray-300 rounded-md"></div>
+                    <div><label class="font-semibold text-gray-700">Class 12th Board %</label><input type="number" step="0.01" name="boards_percentage" placeholder="e.g., 95" class="mt-1 w-full p-3 border border-gray-300 rounded-md"></div>
+                    <div><label class="font-semibold text-gray-700">IPMAT Score (IIMs)</label><input type="number" name="ipmat_score" placeholder="e.g., 270" class="mt-1 w-full p-3 border border-gray-300 rounded-md"></div>
+                    <div><label class="font-semibold text-gray-700">NPAT Score (NMIMS)</label><input type="number" name="npat_score" placeholder="e.g., 240" class="mt-1 w-full p-3 border border-gray-300 rounded-md"></div>
+                    <div><label class="font-semibold text-gray-700">SET Score (Symbiosis)</label><input type="number" name="set_score" placeholder="e.g., 90" class="mt-1 w-full p-3 border border-gray-300 rounded-md"></div>
+                    <div><label class="font-semibold text-gray-700">Christ Uni Test Score</label><input type="number" name="cuet_score" placeholder="e.g., 600" class="mt-1 w-full p-3 border border-gray-300 rounded-md"></div>
+                </div>
+                <div class="text-center pt-6">
+                    <button  style="background-color: blue; color: white; padding: 10px 20px; border-radius: 5px;" type="submit" class="btn btn-primary w-auto px-10">Predict My Colleges</button>
+                </div>`,
+            arts: `
+                ${commonFields}
+                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div><label class="font-semibold text-gray-700">CUET Percentile</label><input type="number" step="0.01" name="cuet_percentile" placeholder="e.g., 99.0" class="mt-1 w-full p-3 border border-gray-300 rounded-md"></div>
+                    <div><label class="font-semibold text-gray-700">Class 12th Board %</label><input type="number" step="0.01" name="boards_percentage" placeholder="e.g., 96" class="mt-1 w-full p-3 border border-gray-300 rounded-md"></div>
+                    <div><label class="font-semibold text-gray-700">CLAT Rank</label><input type="number" name="clat_rank" placeholder="e.g., 200" class="mt-1 w-full p-3 border border-gray-300 rounded-md"></div>
+                    <div><label class="font-semibold text-gray-700">AILET Rank (NLU Delhi)</label><input type="number" name="ailet_rank" placeholder="e.g., 80" class="mt-1 w-full p-3 border border-gray-300 rounded-md"></div>
+                </div>
+                <div class="text-center pt-6">
+                    <button  style="background-color: blue; color: white; padding: 10px 20px; border-radius: 5px;" type="submit" class="btn btn-primary w-auto px-10">Predict My Colleges</button>
+                </div>`
+        };
+
+        // --- CORE LOGIC ---
+
+        function switchSection(sectionToShow, text = "Analyzing thousands of data points...") {
+            Object.values(sections).forEach(sec => sec.classList.add('hidden'));
+            if(sectionToShow === 'loading') {
+                loadingText.textContent = text;
+            }
+            sections[sectionToShow]?.classList.remove('hidden');
+        }
+
+        async function callGemini(prompt, isJson = false) {
+             if (!geminiApiKey) {
+                console.error("Gemini API key is not set.");
+                return { success: false, error: "API key is not set." };
+            }
+            const API_URL_WITH_KEY = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${geminiApiKey}`;
+
+            const payload = {
+                contents: [{ parts: [{ text: prompt }] }],
+                generationConfig: isJson ? { responseMimeType: "application/json" } : {}
+            };
+            
+            try {
+                const response = await fetch(API_URL_WITH_KEY, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                
+                if (!response.ok) {
+                    if (response.status === 400) {
+                        return { success: false, error: "API_KEY_INVALID" };
+                    }
+                    return { success: false, error: `API call failed with status: ${response.status}` };
+                }
+
+                const data = await response.json();
+                const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+
+                if (!text) {
+                     return { success: false, error: "API response was successful but missing expected content." };
+                }
+                return { success: true, data: text };
+
+            } catch (error) {
+                console.error("Gemini API call failed:", error);
+                return { success: false, error: error.message };
+            }
+        }
+
+        async function selectStream(stream) {
+            currentStream = stream;
+            switchSection('branchQuiz'); 
+            if (geminiApiKey) {
+                document.getElementById('quiz-question-area').innerHTML = `<p class="text-gray-500">✨ Generating personalized quiz with AI...</p>`;
+                await generateBranchQuiz(stream);
+            } else {
+                // Fallback to static quiz
+                branchQuizData[stream] = staticQuizData[stream];
+                startBranchQuiz(stream);
+            }
+        }
+        
+        // --- BRANCH QUIZ LOGIC ---
+        async function generateBranchQuiz(stream) {
+            let prompt = '';
+            const basePrompt = `You are a career counselor. Create a 4-question multiple-choice quiz (it is important to have only 4 questions) for a high school student in the "${stream}" stream to determine their aptitude for core branches. Provide the output in a clean JSON format. The JSON object should have two keys: "branches" (an array of short branch codes) and "questions" (an array of question objects). Each question object must have a "text" key, and an "options" key (an array of option objects). Each option object must have a "text" key and a "points" key (an object where keys are branch codes and values are integer points).`;
+
+            if (stream === 'science') {
+                prompt = `${basePrompt} For the science stream, use the following branches and codes: Computer Science (cse), Mechanical Engineering (mech), Civil Engineering (civil), Electrical Engineering (elec), and Basic Sciences (bsc).`;
+            } else if (stream === 'commerce') {
+                prompt = `${basePrompt} For the commerce stream, use the following branches and codes: B.Com (bcom), BBA (bba), Economics (eco), and Integrated MBA (ipm). The questions should gauge interest in finance, management, economic theory, and long-term business strategy.`;
+            } else if (stream === 'arts') {
+                prompt = `${basePrompt} For the arts/humanities stream, use the following branches and codes: History/PoliSci (socsci), English Literature (eng), Psychology (psych), and Law (law). The questions should explore interests in past events, governance, literature, human behavior, and legal reasoning.`;
+            }
+
+            const result = await callGemini(prompt, true);
+            if (result.success) {
+                try {
+                    branchQuizData[stream] = JSON.parse(result.data);
+                    startBranchQuiz(stream);
+                } catch(e) {
+                    console.error("Failed to parse quiz JSON from Gemini:", e);
+                    document.getElementById('quiz-question-area').innerHTML = `<p class="text-red-500">Could not generate AI quiz. Using default quiz.</p>`;
+                    branchQuizData[stream] = staticQuizData[stream]; // Fallback
+                    setTimeout(() => startBranchQuiz(stream), 1500);
+                }
+            } else {
+                 let errorMessage = "Could not generate AI quiz due to an API error. Using default quiz.";
+                if (result.error === "API_KEY_INVALID") {
+                    errorMessage = "The API Key provided is invalid. Please refresh and enter a valid key. Using default quiz for now.";
+                }
+                document.getElementById('quiz-question-area').innerHTML = `<p class="text-red-500">${errorMessage}</p>`;
+                branchQuizData[stream] = staticQuizData[stream]; // Fallback
+                setTimeout(() => startBranchQuiz(stream), 2000);
+            }
+        }
+
+        function startBranchQuiz(stream) {
+            const quiz = branchQuizData[stream];
+            if (!quiz || !quiz.questions || quiz.questions.length === 0) {
+                recommendedBranches = [];
+                recommendedBranchText.parentElement.classList.add('hidden');
+                prepareScoreForm();
+                return;
+            }
+            currentQuestionIndex = 0;
+            branchScores = {};
+            quiz.branches.forEach(b => branchScores[b] = 0);
+            displayBranchQuestion();
+        }
+
+        function displayBranchQuestion() {
+            const quiz = branchQuizData[currentStream];
+            const question = quiz.questions[currentQuestionIndex];
+            const progress = ((currentQuestionIndex) / quiz.questions.length) * 100;
+            document.getElementById('quiz-progress-bar').style.width = `${progress}%`;
+            document.getElementById('quiz-question-area').innerHTML = `
+                <h3 class="text-xl font-semibold mb-6 text-gray-900">${question.text}</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    ${question.options.map(opt => `
+                        <button onclick='selectBranchOption(${JSON.stringify(opt.points)})' class="text-left p-4 bg-gray-100 hover:bg-blue-100 rounded-lg border-2 border-transparent hover:border-blue-500 transition-all">${opt.text}</button>
+                    `).join('')}
+                </div>`;
+        }
+        
+        function selectBranchOption(points) {
+            for (const branch in points) {
+                if (branchScores.hasOwnProperty(branch)) branchScores[branch] += points[branch];
+            }
+            currentQuestionIndex++;
+            const quiz = branchQuizData[currentStream];
+            if (currentQuestionIndex < quiz.questions.length) {
+                displayBranchQuestion();
+            } else {
+                finishBranchQuiz();
+            }
+        }
+
+        function finishBranchQuiz() {
+            document.getElementById('quiz-progress-bar').style.width = `100%`;
+            const sortedBranches = Object.entries(branchScores).sort((a, b) => b[1] - a[1]);
+            const branchMap = {
+                cse: "Computer Science", mech: "Mechanical", civil: "Civil", elec: "Electrical", bsc: "Basic Sciences",
+                bcom: "B.Com", bba: "BBA", eco: "Economics (Hons)", ipm: "Integrated MBA (IPM)",
+                socsci: "Social Sciences", eng: "English Literature", psych: "Psychology", law: "Law (CLAT/AILET)"
+            };
+            recommendedBranches = sortedBranches.slice(0, 2).map(b => branchMap[b[0]] || b[0]);
+            recommendedBranchText.innerHTML = recommendedBranches.join(' & ');
+            recommendedBranchText.parentElement.classList.remove('hidden');
+            setTimeout(prepareScoreForm, 500);
+        }
+
+        function prepareScoreForm() {
+            streamNameEl.textContent = currentStream;
+            scoreForm.innerHTML = formFields[currentStream];
+            switchSection('scores');
+        }
+
+        // --- PREDICTION LOGIC ---
+        scoreForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const formData = new FormData(scoreForm);
+            const userInputs = {};
+            for (let [key, value] of formData.entries()) {
+                if (value) userInputs[key] = isNaN(parseFloat(value)) ? value : parseFloat(value);
+            }
+            switchSection('loading', "Analyzing thousands of data points...");
+            setTimeout(() => runPrediction(userInputs), 1500); 
+        });
+
+        function runPrediction(inputs) {
+            const predictions = { high: [], medium: [], low: [] };
+            const data = collegeData[currentStream];
+
+            for (const examType in inputs) {
+                if (examType === 'state' || examType === 'category') continue;
+                const userScore = inputs[examType];
+                if (userScore === undefined || userScore === null || userScore === '') continue;
+
+                const relevantColleges = data.filter(college => college.courses.some(c => c.cutoff[examType]));
+
+                relevantColleges.forEach(college => {
+                    college.courses.forEach(course => {
+                        if (!course.cutoff[examType]) return;
+
+                        const isHomeState = inputs.state === college.state;
+                        const quota = isHomeState ? "HS" : "OS";
+                        
+                        const categoryCutoffs = course.cutoff[examType];
+                        if (!categoryCutoffs[inputs.category]) {
+                            return; 
+                        }
+                        let cutoffData = categoryCutoffs[inputs.category];
+
+                        let cutoffValue = (typeof cutoffData === 'object' && cutoffData !== null) ? (cutoffData[quota] || cutoffData["OS"]) : cutoffData;
+                        if (cutoffValue === undefined || cutoffValue === null) {
+                            if (typeof cutoffData === 'number') cutoffValue = cutoffData;
+                            else return;
+                        }
+                        
+                        const isRank = examType.includes('rank');
+                        const result = { 
+                            name: college.name,
+                            state: college.state,
+                            nirf: college.nirf,
+                            courseName: course.name,
+                            cutoff: course.cutoff,
+                            cutoffValue, 
+                            quota 
+                        };
+                        
+                        const mediumMargin = isRank ? 1.15 : 0.95; // Tighter margin
+                        const ambitiousMargin = isRank ? 1.40 : 0.90; // More realistic margin
+
+                        if ((isRank && userScore <= cutoffValue) || (!isRank && userScore >= cutoffValue)) {
+                            predictions.high.push(result);
+                        } else if ((isRank && userScore <= cutoffValue * mediumMargin) || (!isRank && userScore >= cutoffValue * mediumMargin)) {
+                            predictions.medium.push(result);
+                        } else if ((isRank && userScore <= cutoffValue * ambitiousMargin) || (!isRank && userScore >= cutoffValue * ambitiousMargin)) {
+                            predictions.low.push(result);
+                        }
+                    });
+                });
+            }
+
+            Object.keys(predictions).forEach(key => predictions[key].sort((a, b) => a.nirf - b.nirf));
+            highChanceColleges = predictions.high.slice(0, 5); // Increased for more detailed roadmap
+            displayResults(predictions, inputs.category, inputs.state);
+        }
+
+        function displayResults(predictions, category, state) {
+            resultsSubtitle.innerHTML = `Showing results for <strong class="text-indigo-600">${category}</strong> category with <strong class="text-indigo-600">${state}</strong> state eligibility.`;
+            resultsOutput.innerHTML = `
+                ${createResultCategory('🎯 High Chance', predictions.high, 'green', category)}
+                ${createResultCategory('🤔 Medium Chance', predictions.medium, 'yellow', category)}
+                ${createResultCategory('🚀 Ambitious (Low Chance)', predictions.low, 'red', category)}
+            `;
+            switchSection('results');
+        }
+        
+         function createResultCategory(title, items, color, category) {
+            if (items.length === 0) {
+                 return `
+                    <div>
+                        <h3 class="text-xl font-bold mb-4 text-${color}-600">${title}</h3>
+                        <div class="text-center py-6 bg-slate-50 rounded-lg">
+                            <p class="text-slate-500">No colleges found in this category based on your scores.</p>
+                        </div>
+                    </div>`;
+            }
+            const examNameMap = {
+                'jee_advanced_rank': 'JEE Adv.', 'jee_main_rank': 'JEE Main', 'bitsat_score': 'BITSAT',
+                'viteee_rank': 'VITEEE', 'met_rank': 'MET', 'comedk_rank': 'COMEDK', 'ugee_rank': 'UGEE',
+                'mhtcet_percentile': 'MHTCET', 'wbjee_rank': 'WBJEE', 'iat_rank': 'IAT', 'nest_rank': 'NEST',
+                'cuet_percentile': 'CUET', 'boards_percentage': '12th %', 'ipmat_score': 'IPMAT',
+                'npat_score': 'NPAT', 'set_score': 'SET', 'cuet_score': 'Christ Test',
+                'clat_rank': 'CLAT', 'ailet_rank': 'AILET'
+            };
+
+            return `
+                <div>
+                    <h3 class="text-xl font-bold mb-4 border-l-4 border-${color}-500 pl-3 text-slate-900">${title}</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        ${items.map(item => {
+                            const examType = Object.keys(item.cutoff)[0];
+                            const isRecommended = recommendedBranches.some(rec => item.courseName.toLowerCase().includes(rec.toLowerCase().split(' ')[0]));
+                            const cutoffLabel = examNameMap[examType] || examType;
+                            return `
+                            <div class="result-card ${isRecommended ? 'border-indigo-500 border-2 shadow-indigo-100' : ''}">
+                                ${isRecommended ? '<span class="absolute top-0 right-0 -mt-3 -mr-3 bg-indigo-500 text-white text-xs font-bold px-3 py-1 rounded-full z-10">Recommended</span>' : ''}
+                                <div class="flex justify-between items-start">
+                                    <h4 class="font-bold text-lg text-slate-900">${item.name}</h4>
+                                    <span class="text-sm font-semibold text-sky-800 bg-sky-100 px-2 py-1 rounded-full">NIRF #${item.nirf}</span>
+                                </div>
+                                <p class="text-slate-700 mt-1">${item.courseName}</p>
+                                <p class="text-sm text-slate-500 mt-3 pt-3 border-t border-slate-200">
+                                    ${category}-${item.quota || ''} Cutoff (${cutoffLabel}): <strong class="text-slate-600">${item.cutoffValue}</strong>
+                                </p>
+                            </div>
+                        `}).join('')}
+                    </div>
+                </div>`;
+        }
+
+        // --- AI CAREER ROADMAP & QUIZ LOGIC ---
+        aiRoadmapBtn.addEventListener('click', () => {
+             if (highChanceColleges.length === 0) {
+                alert("No high-chance colleges were found to generate a roadmap. Please try with different scores.");
+                return;
+            }
+            if (geminiApiKey) {
+                startCareerQuiz();
+            } else {
+                alert("Please provide an API key to use the AI Roadmap feature.");
+            }
+        });
+        
+        async function startCareerQuiz() {
+            switchSection('careerQuiz');
+            document.getElementById('quiz-question-area').innerHTML = `<p class="text-slate-500">✨ Generating career goals quiz with AI...</p>`;
+            
+            const prompt = `You are a career counselor. Create a 4-question multiple-choice quiz to understand a student's career aspirations. The goal is to determine their preference across several traits. Provide the output in a clean JSON format. The JSON object should have two keys: "traits" (an array of short trait codes) and "questions" (an array of question objects). For traits, use: 'workLifeBalance', 'highSalary', 'leadership', 'teamwork', 'innovation'. Each question object must have a "text" key and an "options" key (an array of option objects). Each option object must have a "text" key and a "points" key (an object where keys are the trait codes and values are integer points).`;
+
+            const result = await callGemini(prompt, true);
+            if (result.success) {
+                try {
+                    careerQuizData = JSON.parse(result.data);
+                    currentCareerQuestionIndex = 0;
+                    userCareerPreferences = {};
+                    careerQuizData.traits.forEach(t => userCareerPreferences[t] = 0);
+                    displayCareerQuestion();
+                } catch (e) {
+                    console.error("Failed to parse career quiz JSON:", e);
+                    generateAiRoadmap(null);
+                }
+            } else {
+                generateAiRoadmap(null);
+            }
+        }
+
+        function displayCareerQuestion() {
+            const question = careerQuizData.questions[currentCareerQuestionIndex];
+            const progress = ((currentCareerQuestionIndex) / careerQuizData.questions.length) * 100;
+            document.getElementById('career-quiz-progress-bar').style.width = `${progress}%`;
+            document.getElementById('career-quiz-question-area').innerHTML = `
+                <h3 class="text-xl font-semibold mb-6 text-slate-900">${question.text}</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    ${question.options.map(opt => `
+                        <button onclick='selectCareerOption(${JSON.stringify(opt.points)})' class="text-left p-4 bg-slate-100 hover:bg-sky-100 rounded-lg border-2 border-transparent hover:border-sky-500 transition-all">${opt.text}</button>
+                    `).join('')}
+                </div>`;
+        }
+
+        function selectCareerOption(points) {
+            for (const trait in points) {
+                if (userCareerPreferences.hasOwnProperty(trait)) userCareerPreferences[trait] += points[trait];
+            }
+            currentCareerQuestionIndex++;
+            if (currentCareerQuestionIndex < careerQuizData.questions.length) {
+                displayCareerQuestion();
+            } else {
+                finishCareerQuiz();
+            }
+        }
+
+        function finishCareerQuiz() {
+            document.getElementById('career-quiz-progress-bar').style.width = '100%';
+            
+            const sortedPreferences = Object.entries(userCareerPreferences).sort((a, b) => b[1] - a[1]);
+            const dominantTraits = sortedPreferences.slice(0, 2).map(p => p[0]);
+
+            const preferenceSummary = `The user prioritizes ${dominantTraits.join(' and ')}.`;
+            
+            setTimeout(() => generateAiRoadmap(preferenceSummary), 500);
+        }
+
+        async function generateAiRoadmap(preferencesSummary) {
+            switchSection('loading', "✨ Generating Hyper-Personalized AI Roadmap...");
+            
+            const collegeList = highChanceColleges.map(c => `${c.courseName} at ${c.name}`).join(", ");
+            let prompt = `Act as an expert career counselor for an Indian student. The student has a high chance of getting into: ${collegeList}.`;
+
+            if (preferencesSummary) {
+                prompt += `\nTheir career aspiration quiz indicates: ${preferencesSummary}.`;
+            }
+
+            prompt += `\n\nBased on all this information, provide a detailed "Career Roadmap". Format the entire response as a single block of clean HTML. Do not include \`\`\`html, markdown, or the word "html".
+            - Use an opening <p> tag for a brief, positive opening statement.
+            - Use <h4 class="text-lg font-bold text-indigo-600 mt-4 mb-2"> for each section title.
+            - The sections are: "Tailored Career Paths", "Expected Salary Range", "Work-Life Balance Outlook", "Key Skills to Develop", and "College Life Insights".
+            - Under "Tailored Career Paths", use an unordered list (<ul class="list-disc list-inside pl-4 space-y-1 text-slate-600">) to suggest 3-4 specific job roles that align with their college options AND their career aspirations.
+            - Under "Expected Salary Range" and "Work-Life Balance Outlook", provide brief paragraphs with realistic information for the suggested paths in the Indian market. Use salary ranges in INR Lakhs per annum (e.g., 15-25 LPA).
+            - Under "Key Skills to Develop", use another unordered list to suggest essential skills.
+            - Use a simple <p> tag for the "College Life Insights" section.
+            - End with a final motivational sentence in a <p class="font-semibold mt-4"> tag.`;
+
+            const result = await callGemini(prompt);
+            if (result.success) {
+                aiReportContent.innerHTML = result.data;
+                switchSection('aiReport');
+            } else {
+                 let errorMessage = "Could not generate the AI roadmap. The API might be busy. Please try again later.";
+                if (result.error === "API_KEY_INVALID") {
+                    errorMessage = "The API Key provided is invalid. Please refresh and enter a valid key to use this feature.";
+                    switchSection('results');
+                    alert(errorMessage);
+                    return;
+                }
+                aiReportContent.innerHTML = `<p class="text-red-500">${errorMessage}</p>`;
+                switchSection('aiReport');
+            }
+        }
+
+
+        function resetApp() {
+            currentStream = '';
+            recommendedBranches = [];
+            highChanceColleges = [];
+            userCareerPreferences = {};
+            scoreForm.innerHTML = '';
+            resultsOutput.innerHTML = '';
+            switchSection('quiz');
+        }
+
+        // --- MODAL LOGIC ---
+        apiKeyForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const inputKey = document.getElementById('api-key-input').value;
+            if (inputKey) {
+                geminiApiKey = inputKey;
+                apiKeyModal.classList.add('hidden');
+            }
+        });
+
+        skipApiKeyBtn.addEventListener('click', () => {
+            apiKeyModal.classList.add('hidden');
+        });
+    </script>
+</body>
+</html>
